@@ -17,7 +17,7 @@
     "compile:tasks": "tsc --project BuildTasks",
     "postcompile:tasks": "npm run lint:tasks",
     "lint:tasks": "tslint -c tslint.json \"BuildTasks/!(@types)/*.ts",
-    "prelink:tasks": "mkdirp dist/_temp/node_modules && pushd \"dist/_temp\" && npm install vsts-task-lib@2.0.0-preview && npm install q@1.4.1 && popd",
+    "prelink:tasks": "mkdirp dist/_temp/node_modules && pushd \"dist/_temp\" && npm install vsts-task-lib@2.0.0-preview && npm install q@1.4.1 && npm install applicationinsights@0.19.0 && popd",
     "link:tasks": "node scripts/copyfilesToBuildTasks -u 2 dist/_temp/node_modules/**/* dist/BuildTasks",
     "postlink:tasks": "rimraf dist/_temp",
     "link:tasks:publish": "pushd \"dist/BuildTasks/PublishExtension\" && npm install && popd",
@@ -32,6 +32,7 @@
   "author": "Microsoft Corporation",
   "license": "MIT",
   "devDependencies": {
+    "@types/applicationinsights": "^0.15.33",
     "@types/node": "^7.0.7",
     "@types/q": "0.0.32",
     "@types/temp": "^0.8.29",
@@ -47,6 +48,7 @@
     "typescript": "^2.0.9"
   },
   "dependencies": {
+    "applicationinsights": "^0.19.0",
     "q": "^1.4.1",
     "vsts-task-lib": "^2.0.0-preview"
   }

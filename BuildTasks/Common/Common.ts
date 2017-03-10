@@ -10,6 +10,47 @@ import * as Q from "q";
 import * as tl from "vsts-task-lib/task";
 import * as trl from "vsts-task-lib/toolrunner";
 import ToolRunner = trl.ToolRunner;
+import * as AppInsights from "applicationinsights";
+import * as uuid from "node-uuid";
+
+function InitializeAppInsights(): Client {
+    if (AppInsightsClient) {
+        return AppInsightsClient;
+    }
+    else {
+        AppInsights
+            .setup("9eac42dc-4442-4a6a-a785-df5f8b50f45a")
+            .setAutoCollectConsole(false)
+            .setAutoCollectExceptions(false)
+            .setAutoCollectPerformance(false)
+            .setAutoCollectRequests(false)
+            .start();
+
+        const taskJson = JSON.parse(fs.readFileSync(path.join(__dirname, "/task.json"), "utf-8"));
+
+        AppInsights.client.commonProperties = {
+            "Task Version": `${taskJson.version.Major}.${taskJson.version.Minor}.${taskJson.version.Patch}`,
+            "Task Name": taskJson.name,
+            "Task Id": taskJson.id,
+            "Agent Version": tl.getVariable("Agent.Version"),
+            "Node Version": `${process.version}`,
+            "Server Type": tl.getVariable("System.TeamFoundationCollectionUri")
+                .match("https://[^/]+.visualstudio.com") ? "VSTeam" : "TFS",
+            "Operating Sytem": `${tl.osType()}`,
+            "Host Type": tl.getVariable("System.HostType"),
+            "Culture": tl.getVariable("System.Culture"),
+            "Agent Type": tl.getVariable("Agent.Name") === "Hosted Agent" ? "Hosted" : "Custom",
+            "Extension Id": "vsts-developer-tools-build-tasks",
+            "Extension Name": "Extension Build and Release Tasks",
+            "Operation Id": `${uuid.v4()}`
+        };
+
+        AppInsights.client.trackEvent("Started");
+        return AppInsights.client;
+    }
+}
+
+export const AppInsightsClient = InitializeAppInsights();
 
 function writeBuildTempFile(taskName: string, data: any): string {
     let tempFile: string;
@@ -171,8 +212,7 @@ export function runTfx(cmd: (tfx: ToolRunner) => void) {
             return true;
         }
         catch (err) {
-            tl.setResult(tl.TaskResult.Failed, `Error running task: ${err}`);
-            return false;
+            throw err;
         }
     };
 
@@ -217,7 +257,7 @@ export function runTfx(cmd: (tfx: ToolRunner) => void) {
         tfx = new trl.ToolRunner(tl.which(tfxLocalPath) || tl.which(tfxLocalPathBin, true));
         tryRunCmd(tfx);
     }).fail(err => {
-        tl.setResult(tl.TaskResult.Failed, `Error installing tfx: ${err}`);
+        throw err;
     });
 }
 
