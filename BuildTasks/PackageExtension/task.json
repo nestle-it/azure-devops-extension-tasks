@@ -29,6 +29,11 @@
       "name": "advanced",
       "displayName": "Advanced",
       "isExpanded": false
+    },
+    {
+      "name": "diagnostics",
+      "displayName": "Diagnostics",
+      "isExpanded": false
     }
   ],
   "instanceNameFormat": "Package Extension: $(rootFolder)",
@@ -189,6 +194,19 @@
       "required": false,
       "helpMarkDown": "Current working directory when tfx is run. Defaults to the folder where the manifest is located.",
       "groupName": "advanced"
+    },
+    {
+      "defaultValue": "true",
+      "helpMarkdown": "Help us improve these tasks by sending usage and diagnostics information.",
+      "label": "Send usage and diagnostics data",
+      "name": "optInDiagnostics",
+      "required": true,
+      "options": {
+        "true": "Yes",
+        "false": "No"
+      },
+      "type": "pickList",
+      "groupName": "diagnostics"
     }
   ],
   "execution": {

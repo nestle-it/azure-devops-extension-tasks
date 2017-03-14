@@ -29,6 +29,11 @@
       "name": "advanced",
       "displayName": "Advanced",
       "isExpanded": false
+    },
+    {
+      "name": "diagnostics",
+      "displayName": "Diagnostics",
+      "isExpanded": false
     }
   ],
   "instanceNameFormat": "Publish Extension",
@@ -248,6 +253,19 @@
       "required": false,
       "helpMarkDown": "Working directory to run the package and publishing process from. Defaults to the folder where the manifest is located.",
       "groupName": "advanced"
+    },
+    {
+      "defaultValue": "true",
+      "helpMarkdown": "Help us improve these tasks by sending usage and diagnostics information.",
+      "label": "Send usage and diagnostics data",
+      "name": "optInDiagnostics",
+      "required": true,
+      "options": {
+        "true": "Yes",
+        "false": "No"
+      },
+      "type": "pickList",
+      "groupName": "diagnostics"
     }
   ],
   "execution": {
