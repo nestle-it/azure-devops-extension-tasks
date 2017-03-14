@@ -18,34 +18,40 @@ function InitializeAppInsights(): Client {
         return AppInsightsClient;
     }
     else {
-        AppInsights
-            .setup("9eac42dc-4442-4a6a-a785-df5f8b50f45a")
-            .setAutoCollectConsole(false)
-            .setAutoCollectExceptions(false)
-            .setAutoCollectPerformance(false)
-            .setAutoCollectRequests(false)
-            .start();
+        AppInsights.setup("9eac42dc-4442-4a6a-a785-df5f8b50f45a");
 
-        const taskJson = JSON.parse(fs.readFileSync(path.join(__dirname, "/task.json"), "utf-8"));
+        const optInDiagnostics = tl.getBoolInput("optInDiagnostics", false);
+        if (optInDiagnostics) {
+            const taskJson = JSON.parse(fs.readFileSync(path.join(__dirname, "/task.json"), "utf-8"));
 
-        AppInsights.client.commonProperties = {
-            "Task Version": `${taskJson.version.Major}.${taskJson.version.Minor}.${taskJson.version.Patch}`,
-            "Task Name": taskJson.name,
-            "Task Id": taskJson.id,
-            "Agent Version": tl.getVariable("Agent.Version"),
-            "Node Version": `${process.version}`,
-            "Server Type": tl.getVariable("System.TeamFoundationCollectionUri")
-                .match("https://[^/]+.visualstudio.com") ? "VSTeam" : "TFS",
-            "Operating Sytem": `${tl.osType()}`,
-            "Host Type": tl.getVariable("System.HostType"),
-            "Culture": tl.getVariable("System.Culture"),
-            "Agent Type": tl.getVariable("Agent.Name") === "Hosted Agent" ? "Hosted" : "Custom",
-            "Extension Id": "vsts-developer-tools-build-tasks",
-            "Extension Name": "Extension Build and Release Tasks",
-            "Operation Id": `${uuid.v4()}`
-        };
+            AppInsights
+                .setAutoCollectConsole(false)
+                .setAutoCollectExceptions(false)
+                .setAutoCollectPerformance(false)
+                .setAutoCollectRequests(false);
 
-        AppInsights.client.trackEvent("Started");
+            AppInsights.client.commonProperties = {
+                "Task Version": `${taskJson.version.Major}.${taskJson.version.Minor}.${taskJson.version.Patch}`,
+                "Task Name": taskJson.name,
+                "Task Id": taskJson.id,
+                "Agent Version": tl.getVariable("Agent.Version"),
+                "Node Version": `${process.version}`,
+                "Server Type": tl.getVariable("System.TeamFoundationCollectionUri")
+                    .match("https://[^/]+.visualstudio.com") ? "VSTeam" : "TFS",
+                "Operating Sytem": `${tl.osType()}`,
+                "Host Type": tl.getVariable("System.HostType"),
+                "Culture": tl.getVariable("System.Culture"),
+                "Agent Type": tl.getVariable("Agent.Name") === "Hosted Agent" ? "Hosted" : "Custom",
+                "Extension Id": "vsts-developer-tools-build-tasks",
+                "Extension Name": "Extension Build and Release Tasks",
+                "Operation Id": `${uuid.v4()}`
+            };
+
+            AppInsights.start();
+            AppInsights.client.trackEvent("Started");
+        } else{
+            AppInsights.client.config.disableAppInsights = !optInDiagnostics;
+        }
         return AppInsights.client;
     }
 }
