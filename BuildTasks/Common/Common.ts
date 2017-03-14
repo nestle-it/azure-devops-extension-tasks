@@ -28,7 +28,8 @@ function InitializeAppInsights(): Client {
                 .setAutoCollectConsole(false)
                 .setAutoCollectExceptions(false)
                 .setAutoCollectPerformance(false)
-                .setAutoCollectRequests(false);
+                .setAutoCollectRequests(false)
+                .start();
 
             AppInsights.client.commonProperties = {
                 "Task version": `${taskJson.version.Major}.${taskJson.version.Minor}.${taskJson.version.Patch}`,
@@ -38,7 +39,7 @@ function InitializeAppInsights(): Client {
                 "Node version": `${process.version}`.replace(/^v/m, ""),
                 "Server type": tl.getVariable("System.TeamFoundationCollectionUri")
                     .match("https://[^/]+.visualstudio.com") ? "VSTeam" : "TFS",
-                "OS type": `${tl.osType()}`,
+                "Operating system type": `${tl.osType()}`,
                 "Host type": tl.getVariable("System.HostType"),
                 "Culture": tl.getVariable("System.Culture"),
                 "Agent type": tl.getVariable("Agent.Name") === "Hosted Agent" ? "Hosted" : "Custom",
@@ -47,7 +48,6 @@ function InitializeAppInsights(): Client {
                 "Operation Id": `${uuid.v4()}`
             };
 
-            AppInsights.start();
             AppInsights.client.trackEvent("Started");
         } else {
             AppInsights.client.config.disableAppInsights = true;
@@ -258,16 +258,16 @@ export function runTfx(cmd: (tfx: ToolRunner) => void) {
     console.log(`Could not find tfx command. Preparing to install it under: ${agentToolsPath}`);
     tl.mkdirP(path.join(agentToolsPath, "/node_modules/"));
 
-    const npm = new trl.ToolRunner(tl.which("npm", true));
-    npm.arg(["install", "tfx-cli", "--prefix", agentToolsPath]);
+    const npmRunner = new trl.ToolRunner(tl.which("npm", true));
+    npmRunner.arg(["install", "tfx-cli", "--prefix", agentToolsPath]);
 
     let startTime = Date.now();
-    npm.exec().then(code => {
-        AppInsightsClient.trackDependency("npm", "install tfx", Date.now() - startTime, true, "", { "ResultCode": 0 }, null, true);
+    npmRunner.exec().then(code => {
+        AppInsightsClient.trackDependency("npm", "install tfx", Date.now() - startTime, true, "", { "Result code": "0" }, null, true);
         tfx = new trl.ToolRunner(tl.which(tfxLocalPath) || tl.which(tfxLocalPathBin, true));
         tryRunCmd(tfx);
     }).fail(err => {
-        AppInsightsClient.trackDependency("npm", "install tfx", Date.now() - startTime, false, "", { "ResultCode": err }, null, true);
+        AppInsightsClient.trackDependency("npm", "install tfx", Date.now() - startTime, false, "", { "Result code": `${err}` }, null, true);
         throw err;
     });
 }
