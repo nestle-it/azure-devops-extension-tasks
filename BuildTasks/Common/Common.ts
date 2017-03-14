@@ -31,19 +31,19 @@ function InitializeAppInsights(): Client {
                 .setAutoCollectRequests(false);
 
             AppInsights.client.commonProperties = {
-                "Task Version": `${taskJson.version.Major}.${taskJson.version.Minor}.${taskJson.version.Patch}`,
-                "Task Name": taskJson.name,
+                "Task version": `${taskJson.version.Major}.${taskJson.version.Minor}.${taskJson.version.Patch}`,
+                "Task name": taskJson.name,
                 "Task Id": taskJson.id,
-                "Agent Version": tl.getVariable("Agent.Version"),
-                "Node Version": `${process.version}`.replace(/$v/, ""),
-                "Server Type": tl.getVariable("System.TeamFoundationCollectionUri")
+                "Agent version": tl.getVariable("Agent.Version"),
+                "Node version": `${process.version}`.replace(/^v/m, ""),
+                "Server type": tl.getVariable("System.TeamFoundationCollectionUri")
                     .match("https://[^/]+.visualstudio.com") ? "VSTeam" : "TFS",
-                "Operating sytem type": `${tl.osType()}`,
-                "Host Type": tl.getVariable("System.HostType"),
+                "OS type": `${tl.osType()}`,
+                "Host type": tl.getVariable("System.HostType"),
                 "Culture": tl.getVariable("System.Culture"),
-                "Agent Type": tl.getVariable("Agent.Name") === "Hosted Agent" ? "Hosted" : "Custom",
+                "Agent type": tl.getVariable("Agent.Name") === "Hosted Agent" ? "Hosted" : "Custom",
                 "Extension Id": "vsts-developer-tools-build-tasks",
-                "Extension Name": "Extension Build and Release Tasks",
+                "Extension name": "Extension Build and Release Tasks",
                 "Operation Id": `${uuid.v4()}`
             };
 
