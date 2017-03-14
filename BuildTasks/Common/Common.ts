@@ -105,11 +105,13 @@ export function validateAndSetTfxManifestArguments(tfx: ToolRunner): (() => void
         case "manifest":
         case "id":
         default:
+            AppInsightsClient.trackEvent("From/Manifest");
             tfx.argIf(publisher, ["--publisher", publisher]);
             tfx.argIf(extensionId, ["--extension-id", extensionId]);
             break;
 
         case "vsix":
+            AppInsightsClient.trackEvent("From/Vsix");
             let vsixFilePattern = tl.getPathInput("vsixFile", true);
             let matchingVsixFile: string[];
             if (vsixFilePattern.indexOf("*") >= 0 || vsixFilePattern.indexOf("?") >= 0) {
@@ -253,10 +255,13 @@ export function runTfx(cmd: (tfx: ToolRunner) => void) {
     const npm = new trl.ToolRunner(tl.which("npm", true));
     npm.arg(["install", "tfx-cli", "--prefix", agentToolsPath]);
 
+    let startTime = Date.now();
     npm.exec().then(code => {
+        AppInsightsClient.trackDependency("npm", "install tfx", Date.now() - startTime, true, "", false, null, false);
         tfx = new trl.ToolRunner(tl.which(tfxLocalPath) || tl.which(tfxLocalPathBin, true));
         tryRunCmd(tfx);
     }).fail(err => {
+        AppInsightsClient.trackDependency("npm", "install tfx", Date.now() - startTime, false, "", false, null, false);
         throw err;
     });
 }
@@ -315,11 +320,13 @@ export function setTfxMarketplaceArguments(tfx: ToolRunner) {
     let galleryEndpoint;
 
     if (connectTo === "VsTeam") {
+        AppInsightsClient.trackEvent("To/VS-Marketplace");
         galleryEndpoint = getMarketplaceEndpointDetails("connectedServiceName");
         tfx.arg(["--service-url", galleryEndpoint.url]);
         tfx.arg(["--auth-type", "pat"]);
         tfx.arg(["--token", galleryEndpoint.password]);
     } else {
+        AppInsightsClient.trackEvent("To/TFS-Marketplace");
         galleryEndpoint = getMarketplaceEndpointDetails("connectedServiceNameTFS");
         tfx.arg(["--service-url", galleryEndpoint.url]);
 

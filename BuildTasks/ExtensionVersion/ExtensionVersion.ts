@@ -41,7 +41,7 @@ try {
                 common.AppInsightsClient.trackDependency("tfx", "extension show", Date.now() - startTime, result.code === 0, "", false, { ResultCode: result.code }, false);
             }
 
-            if (result.code === 0) {
+            if (!result.error && result.code === 0) {
                 const json = JSON.parse(result.stdout);
                 let version: string = json.versions[0].version;
 
@@ -69,7 +69,7 @@ try {
 
                 tl.setVariable(outputVariable, version);
             } else {
-                throw (result.error || result.stderr)
+                throw (result.error || result.stderr || `tfx exited with error code: ${result.code}`);
             }
         });
     }
