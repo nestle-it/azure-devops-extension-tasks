@@ -150,9 +150,9 @@
       "groupName": "advanced"
     },
     {
-      "defaultValue": "",
+      "defaultValue": "true",
       "helpMarkdown": "Help us improve these tasks by sending usage and diagnostics information.",
-      "label": "Send usage and disgnostics data",
+      "label": "Send usage and diagnostics data",
       "name": "optInDiagnostics",
       "required": true,
       "options": {

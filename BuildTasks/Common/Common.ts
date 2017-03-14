@@ -35,7 +35,7 @@ function InitializeAppInsights(): Client {
                 "Task Name": taskJson.name,
                 "Task Id": taskJson.id,
                 "Agent Version": tl.getVariable("Agent.Version"),
-                "Node Version": `${process.version}`,
+                "Node Version": `${process.version}`.replace(/$v/, ""),
                 "Server Type": tl.getVariable("System.TeamFoundationCollectionUri")
                     .match("https://[^/]+.visualstudio.com") ? "VSTeam" : "TFS",
                 "Operating sytem type": `${tl.osType()}`,
@@ -49,8 +49,8 @@ function InitializeAppInsights(): Client {
 
             AppInsights.start();
             AppInsights.client.trackEvent("Started");
-        } else{
-            AppInsights.client.config.disableAppInsights = !optInDiagnostics;
+        } else {
+            AppInsights.client.config.disableAppInsights = true;
         }
         return AppInsights.client;
     }
@@ -263,11 +263,11 @@ export function runTfx(cmd: (tfx: ToolRunner) => void) {
 
     let startTime = Date.now();
     npm.exec().then(code => {
-        AppInsightsClient.trackDependency("npm", "install tfx", Date.now() - startTime, true, "", false, null, false);
+        AppInsightsClient.trackDependency("npm", "install tfx", Date.now() - startTime, true, "", { "ResultCode": 0 }, null, true);
         tfx = new trl.ToolRunner(tl.which(tfxLocalPath) || tl.which(tfxLocalPathBin, true));
         tryRunCmd(tfx);
     }).fail(err => {
-        AppInsightsClient.trackDependency("npm", "install tfx", Date.now() - startTime, false, "", false, null, false);
+        AppInsightsClient.trackDependency("npm", "install tfx", Date.now() - startTime, false, "", { "ResultCode": err }, null, true);
         throw err;
     });
 }

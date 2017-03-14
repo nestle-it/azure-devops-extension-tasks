@@ -5,6 +5,7 @@ import * as stream from "stream";
 import * as fs from "fs";
 
 try {
+    common.AppInsightsClient.trackEvent("Task/QueryVersion");
     const extensionVersionOverrideVariable = tl.getInput("extensionVersionOverride", false);
     const outputVariable = tl.getInput("outputVariable", true);
     let usingOverride = false;
@@ -34,11 +35,7 @@ try {
                 result = tfx.execSync(option);
             }
             finally {
-                if (result.error) {
-                    common.AppInsightsClient.trackException(result.error);
-                }
-
-                common.AppInsightsClient.trackDependency("tfx", "extension show", Date.now() - startTime, result.code === 0, "", false, { ResultCode: result.code }, false);
+                common.AppInsightsClient.trackDependency("tfx", "extension show", Date.now() - startTime, result.code === 0, "", { "ResultCode": result.code }, null, false);
             }
 
             if (!result.error && result.code === 0) {
@@ -69,6 +66,7 @@ try {
 
                 tl.setVariable(outputVariable, version);
             } else {
+                tl.error(result.stderr);
                 throw (result.error || result.stderr || `tfx exited with error code: ${result.code}`);
             }
         });
