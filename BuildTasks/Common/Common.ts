@@ -38,7 +38,7 @@ function InitializeAppInsights(): Client {
                 "Node Version": `${process.version}`,
                 "Server Type": tl.getVariable("System.TeamFoundationCollectionUri")
                     .match("https://[^/]+.visualstudio.com") ? "VSTeam" : "TFS",
-                "Operating Sytem": `${tl.osType()}`,
+                "Operating sytem type": `${tl.osType()}`,
                 "Host Type": tl.getVariable("System.HostType"),
                 "Culture": tl.getVariable("System.Culture"),
                 "Agent Type": tl.getVariable("Agent.Name") === "Hosted Agent" ? "Hosted" : "Custom",
