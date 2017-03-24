@@ -1,7 +1,7 @@
 //  W A R N I N G!
 // This file is copied to each build task.
 // Any change should be made in the file that is in the Common folder
-
+import * as node from "node";
 import * as os from "os";
 import * as path from "path";
 import * as stream from "stream";
@@ -24,6 +24,8 @@ class ApplicationInSightsScrubber {
     }
 
     scrubEnvelope(envelope: ContractsModule.Envelope, context: any): ContractsModule.Envelope {
+        // Request secrets every time because new secrets may have been registered.
+        // Is it possible to hook into tl.setVariable?
         const allSecrets = this.secrets.concat(this.getSecrets());
         envelope = traverse(envelope).forEach(function (value) { this.update(ApplicationInSightsScrubber.scrubSecret(value, allSecrets)); });
         return envelope;
@@ -43,6 +45,8 @@ class ApplicationInSightsScrubber {
         return object;
     }
 
+    // Needed to register endpoind auth tokens after they've been retrieved from the vault.
+    // Would it be possible to hook into the tl.getService* methods to register them as they are requested?
     public addSecret(secret: string): void {
         if (secret) {
             this.secrets.push(secret);
@@ -50,10 +54,6 @@ class ApplicationInSightsScrubber {
     }
 }
 export const AppInsightScrubber = new ApplicationInSightsScrubber();
-
-function SecretScrubber(envelope: ContractsModule.Envelope, context: any): ContractsModule.Envelope {
-    return AppInsightScrubber.scrubEnvelope(envelope, context);
-}
 
 function InitializeAppInsights(): Client {
     if (AppInsightsClient) {
@@ -73,24 +73,33 @@ function InitializeAppInsights(): Client {
                 .setAutoCollectRequests(false)
                 .start();
 
+            function SecretScrubber(envelope: ContractsModule.Envelope, context: any): ContractsModule.Envelope {
+                return AppInsightScrubber.scrubEnvelope(envelope, context);
+            }
+
+            (<any>AppInsights.client).addTelemetryProcessor(SecretScrubber);
+
             AppInsights.client.commonProperties = {
-                "Task version": `${taskJson.version.Major}.${taskJson.version.Minor}.${taskJson.version.Patch}`,
-                "Task name": taskJson.name,
                 "Task Id": taskJson.id,
                 "Agent version": tl.getVariable("Agent.Version"),
                 "Node version": `${process.version}`.replace(/^v/m, ""),
                 "Server type": tl.getVariable("System.TeamFoundationCollectionUri")
                     .match("https://[^/]+.visualstudio.com") ? "VSTeam" : "TFS",
-                "Operating system type": `${tl.osType()}`,
                 "Host type": tl.getVariable("System.HostType"),
                 "Culture": tl.getVariable("System.Culture"),
                 "Agent type": tl.getVariable("Agent.Name") === "Hosted Agent" ? "Hosted" : "Custom",
                 "Extension Id": "vsts-developer-tools-build-tasks",
                 "Extension name": "Extension Build and Release Tasks",
-                "Operation Id": `${uuid.v4()}`
             };
 
-            (<any>AppInsights.client).addTelemetryProcessor(SecretScrubber);
+            const context = AppInsights.client.context;
+            context.tags[context.keys.operationId] = `${uuid.v4()}`;
+            context.tags[context.keys.operationName] = taskJson.name;
+            context.tags[context.keys.operationParentId] = tl.getVariable("system.jobId");
+            context.tags[context.keys.applicationVersion] = `${taskJson.version.Major}.${taskJson.version.Minor}.${taskJson.version.Patch}`;
+            context.tags[context.keys.deviceOS] = `${tl.osType()}`;
+            context.tags[context.keys.sessionId] = tl.getVariable("system.jobId");
+
             AppInsights.client.trackEvent("Started");
         } else {
             AppInsights.client.config.disableAppInsights = true;
@@ -305,11 +314,11 @@ export function runTfx(cmd: (tfx: ToolRunner) => void) {
 
     let startTime = Date.now();
     npmRunner.exec().then(code => {
-        AppInsightsClient.trackDependency("npm", "install tfx", Date.now() - startTime, true, "", { "Result code": "0" }, null, true);
+        AppInsightsClient.trackDependency("npm", "install tfx", Date.now() - startTime, true);
         tfx = new trl.ToolRunner(tl.which(tfxLocalPath) || tl.which(tfxLocalPathBin, true));
         tryRunCmd(tfx);
     }).fail(err => {
-        AppInsightsClient.trackDependency("npm", "install tfx", Date.now() - startTime, false, "", { "Result code": `${err}` }, null, true);
+        AppInsightsClient.trackDependency("npm", "install tfx", Date.now() - startTime, false);
         throw err;
     });
 }
@@ -485,7 +494,7 @@ function getTasksManifestPaths(manifestFile?: string): Q.Promise<string[]> {
         extensionManifestFiles.map(manifest => {
             return getTaskPathContributions(manifest).then(taskPaths => {
                 tl.debug(`Found task contributions: ${taskPaths}`);
-                return taskPaths.map(taskPath => path.join(rootFolder, taskPath, "task.json"));
+                return taskPaths.map(taskPath => path.join(rootFolder, taskPath, "task.json")).concat();
             });
         })
     ).spread((results: string[][]) => {
