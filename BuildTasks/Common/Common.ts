@@ -18,14 +18,14 @@ class ApplicationInSightsScrubber {
     private secrets: string[] = [];
     static mask = "******";
 
-    getSecrets(): string[] {
+    private getSecrets(): string[] {
         const variables = tl.getVariables();
         return variables.filter(variable => variable.secret).map(variable => variable.value);
     }
 
-    public scrubEnvelope(envelope: ContractsModule.Envelope, context: any): ContractsModule.Envelope {
+    scrubEnvelope(envelope: ContractsModule.Envelope, context: any): ContractsModule.Envelope {
         const allSecrets = this.secrets.concat(this.getSecrets());
-        traverse(envelope).forEach(function (value) { this.update(ApplicationInSightsScrubber.scrubSecret(value, allSecrets)); });
+        envelope = traverse(envelope).forEach(function (value) { this.update(ApplicationInSightsScrubber.scrubSecret(value, allSecrets)); });
         return envelope;
     }
 
@@ -33,10 +33,10 @@ class ApplicationInSightsScrubber {
     // https://github.com/Microsoft/vsts-agent/blob/f7e9a7ee42d0c30f0d31d449bb51d95bd6e9e0fb/src/Microsoft.VisualStudio.Services.Agent/SecretMasker.cs
     // overlapping partial secrets could otherwise be revealed.
     static scrubSecret(object: any, secrets: string[]): any {
-        let text = object as string;
-        if (text) {
+        if (object && object instanceof String) {
+            let text: string = object as string;
             for (let secret in secrets) {
-                text = text.replace(secret, ApplicationInSightsScrubber.mask);
+                text = text.replace(secrets[secret], ApplicationInSightsScrubber.mask);
             }
             return text;
         }
@@ -45,11 +45,15 @@ class ApplicationInSightsScrubber {
 
     public addSecret(secret: string): void {
         if (secret) {
-            this.secrets = this.secrets.concat(secret);
+            this.secrets.push(secret);
         }
     }
 }
 export const AppInsightScrubber = new ApplicationInSightsScrubber();
+
+function SecretScrubber(envelope: ContractsModule.Envelope, context: any): ContractsModule.Envelope {
+    return AppInsightScrubber.scrubEnvelope(envelope, context);
+}
 
 function InitializeAppInsights(): Client {
     if (AppInsightsClient) {
@@ -86,7 +90,7 @@ function InitializeAppInsights(): Client {
                 "Operation Id": `${uuid.v4()}`
             };
 
-            (<any>AppInsights.client).addTelemetryProcessor(AppInsightScrubber.scrubEnvelope);
+            (<any>AppInsights.client).addTelemetryProcessor(SecretScrubber);
             AppInsights.client.trackEvent("Started");
         } else {
             AppInsights.client.config.disableAppInsights = true;
