@@ -17,7 +17,7 @@
     "compile:tasks": "tsc --project BuildTasks",
     "postcompile:tasks": "npm run lint:tasks",
     "lint:tasks": "tslint -c tslint.json \"BuildTasks/!(@types)/*.ts",
-    "prelink:tasks": "mkdirp dist/_temp/node_modules && pushd \"dist/_temp\" && npm install vsts-task-lib@2.0.0-preview && npm install q@1.4.1 && npm install applicationinsights@0.19.0 && popd",
+    "prelink:tasks": "mkdirp dist/_temp/node_modules && pushd \"dist/_temp\" && npm install vsts-task-lib@2.0.0-preview && npm install q@1.4.1 && npm install applicationinsights@0.19.0 && npm install traverse@0.6.6 && popd",
     "link:tasks": "node scripts/copyfilesToBuildTasks -u 2 dist/_temp/node_modules/**/* dist/BuildTasks",
     "postlink:tasks": "rimraf dist/_temp",
     "link:tasks:publish": "pushd \"dist/BuildTasks/PublishExtension\" && npm install && popd",
@@ -36,6 +36,7 @@
     "@types/node": "^7.0.7",
     "@types/q": "0.0.32",
     "@types/temp": "^0.8.29",
+    "@types/traverse": "^0.6.29",
     "@types/x2js": "0.0.27",
     "@types/xmldom": "^0.1.28",
     "copyfiles": "^1.0.0",
@@ -49,6 +50,7 @@
   },
   "dependencies": {
     "applicationinsights": "^0.19.0",
+    "traverse": "^0.6.6",
     "q": "^1.4.1",
     "vsts-task-lib": "^2.0.0-preview"
   }

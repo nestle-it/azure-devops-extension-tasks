@@ -5,6 +5,7 @@
     "x2js": "^3.0.1",
     "xmldom": "^0.1.22",
     "7zip-bin-win": "^2.0.2",
-    "applicationinsights": "^0.19.0"
+    "applicationinsights": "^0.19.0",
+    "traverse": "^0.6.6"
   }
 }

@@ -12,6 +12,44 @@ import * as trl from "vsts-task-lib/toolrunner";
 import ToolRunner = trl.ToolRunner;
 import * as AppInsights from "applicationinsights";
 import * as uuid from "node-uuid";
+import * as traverse from "traverse";
+
+class ApplicationInSightsScrubber {
+    private secrets: string[] = [];
+    static mask = "******";
+
+    getSecrets(): string[] {
+        const variables = tl.getVariables();
+        return variables.filter(variable => variable.secret).map(variable => variable.value);
+    }
+
+    public scrubEnvelope(envelope: ContractsModule.Envelope, context: any): ContractsModule.Envelope {
+        const allSecrets = this.secrets.concat(this.getSecrets());
+        traverse(envelope).forEach(function (value) { this.update(ApplicationInSightsScrubber.scrubSecret(value, allSecrets)); });
+        return envelope;
+    }
+
+    // poor mans solution. Needs to use the logic as found here:
+    // https://github.com/Microsoft/vsts-agent/blob/f7e9a7ee42d0c30f0d31d449bb51d95bd6e9e0fb/src/Microsoft.VisualStudio.Services.Agent/SecretMasker.cs
+    // overlapping partial secrets could otherwise be revealed.
+    static scrubSecret(object: any, secrets: string[]): any {
+        let text = object as string;
+        if (text) {
+            for (let secret in secrets) {
+                text = text.replace(secret, ApplicationInSightsScrubber.mask);
+            }
+            return text;
+        }
+        return object;
+    }
+
+    public addSecret(secret: string): void {
+        if (secret) {
+            this.secrets = this.secrets.concat(secret);
+        }
+    }
+}
+export const AppInsightScrubber = new ApplicationInSightsScrubber();
 
 function InitializeAppInsights(): Client {
     if (AppInsightsClient) {
@@ -48,6 +86,7 @@ function InitializeAppInsights(): Client {
                 "Operation Id": `${uuid.v4()}`
             };
 
+            (<any>AppInsights.client).addTelemetryProcessor(AppInsightScrubber.scrubEnvelope);
             AppInsights.client.trackEvent("Started");
         } else {
             AppInsights.client.config.disableAppInsights = true;
@@ -55,7 +94,6 @@ function InitializeAppInsights(): Client {
         return AppInsights.client;
     }
 }
-
 export const AppInsightsClient = InitializeAppInsights();
 
 function writeBuildTempFile(taskName: string, data: any): string {
@@ -306,6 +344,9 @@ export function getMarketplaceEndpointDetails(inputFieldName): any {
     const password = auth.parameters["password"];
     const username = auth.parameters["username"];
     const apitoken = auth.parameters["apitoken"];
+
+    AppInsightScrubber.addSecret(apitoken);
+    AppInsightScrubber.addSecret(password);
 
     return {
         "url": hostUrl,
